@@ -1,0 +1,12 @@
+# --- Vulnerable-by-Design LLM Agent + MCP Security Lab ---
+# Python 3.10+ required.
+#
+# NOTE: On the very first run, ChromaDB downloads a small local embedding model
+# (all-MiniLM-L6-v2, ~80 MB) once. After that the whole lab runs fully offline.
+
+openai>=1.30.0            # OpenAI SDK (agent brain; optional, StubPlanner works without it)
+mcp>=2.0.0               # Model Context Protocol SDK (MCPServer + stdio client)
+chromadb>=0.5.0          # Real, persistent RAG vector store
+flask>=3.0.0             # Web UI + fake internal-admin / metadata endpoints
+requests>=2.31.0         # Used by fetch_web_document (the SSRF sink) and Telegram
+python-dotenv>=1.0.0     # Loads the .env configuration
