@@ -1,4 +1,4 @@
-# 🧪 Manual Test Guide (Cheat Sheet)
+#  Manual Test Guide (Cheat Sheet)
 
 This lab is **vulnerable by design**. You'll run the 5 attacks below **manually**,
 by handing the agent your own payloads. There is no automated attack script, you
