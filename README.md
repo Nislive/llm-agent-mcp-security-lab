@@ -9,6 +9,8 @@ unrestrained MCP tools gets abused.
 Each of the 5 vulnerabilities ships with a `SAFE_MODE`-gated **defended** variant,
 so the exact same payload can be shown **exploitable** vs. **blocked** side by side.
 
+![The lab web UI — chat console, knowledge-base upload, and internal SSRF targets](screenshots/web-ui.png)
+
 > ## ⚠️ SECURITY WARNING
 > This project is **intentionally insecure**. Every password, key, and credential
 > in it is **FAKE**. Run it only on an **isolated, local** machine. **Do not expose
@@ -31,6 +33,21 @@ so the exact same payload can be shown **exploitable** vs. **blocked** side by s
 | 5 | **Stored XSS** | RAG/DB + unescaped web UI |
 
 Step-by-step manual walkthrough for each → **[MANUAL_TEST_GUIDE.md](MANUAL_TEST_GUIDE.md)**
+
+---
+
+## Demo: indirect prompt injection → exfiltration
+
+An innocent question ("What is Acme's refund policy?") retrieves a **poisoned
+knowledge-base document**. The agent treats the hidden instruction inside that
+document as a command, silently runs `run_sql` to dump user credentials, and ships
+them out via `send_telegram_message` — every step visible in the tool-call log.
+
+![Agent answering a benign question while the tool log shows it running run_sql and exfiltrating credentials over Telegram](screenshots/prompt-injection-exfil.png)
+
+The stolen credentials landing in the attacker's Telegram chat:
+
+![Fake Acme user credentials delivered to a Telegram bot named "Data Exfiltration"](screenshots/telegram-exfiltration.png)
 
 ---
 
