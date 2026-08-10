@@ -1,24 +1,15 @@
-# 🔓 Vulnerable-by-Design LLM Agent + MCP Security Lab
+#  Vulnerable-by-Design LLM Agent + MCP Security Lab
 
 A **deliberately vulnerable** local training environment for practicing **manual**
 LLM-agent and **MCP (Model Context Protocol)** security testing. You feed an agent
-your own payloads through a web UI or CLI — SSRF links, path-traversal paths, SQL
-queries, prompt-injection text, XSS payloads — and watch how an agent wired to
+your own payloads through a web UI or CLI; SSRF links, path-traversal paths, SQL
+queries, prompt-injection text, XSS payloads and watch how an agent wired to
 unrestrained MCP tools gets abused.
 
 Each of the 5 vulnerabilities ships with a `SAFE_MODE`-gated **defended** variant,
 so the exact same payload can be shown **exploitable** vs. **blocked** side by side.
 
 ![The lab web UI — chat console, knowledge-base upload, and internal SSRF targets](screenshots/web-ui.png)
-
-> ## ⚠️ SECURITY WARNING
-> This project is **intentionally insecure**. Every password, key, and credential
-> in it is **FAKE**. Run it only on an **isolated, local** machine. **Do not expose
-> it to the internet or any network**, and never point it at real data. It exists
-> purely for education.
->
-> **Do not open "vulnerability" issues** — the vulnerabilities are the point. See
-> [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -29,45 +20,25 @@ so the exact same payload can be shown **exploitable** vs. **blocked** side by s
 | 1 | **SSRF** (internal service + AWS IMDS) | `fetch_web_document` |
 | 2 | **Path Traversal** | `read_file` |
 | 3 | **SQLi / Confused Deputy** | `run_sql` |
-| 4 | **Indirect Prompt Injection → Exfiltration** | `search_kb` + `send_telegram_message` |
+| 4 | **Indirect Prompt Injection + RAG Poisoning → Exfiltration** | `search_kb` + `send_telegram_message` |
 | 5 | **Stored XSS** | RAG/DB + unescaped web UI |
 
 Step-by-step manual walkthrough for each → **[MANUAL_TEST_GUIDE.md](MANUAL_TEST_GUIDE.md)**
 
 ---
 
-## Demo: indirect prompt injection → exfiltration
+## Demo: indirect prompt injection + RAG Poisoning → exfiltration
 
 An innocent question ("What is Acme's refund policy?") retrieves a **poisoned
 knowledge-base document**. The agent treats the hidden instruction inside that
-document as a command, silently runs `run_sql` to dump user credentials, and ships
-them out via `send_telegram_message` — every step visible in the tool-call log.
+document as a command, silently runs `run_sql` to dump user credentials and ships
+them out via `send_telegram_message` every step visible in the tool-call log.
 
 ![Agent answering a benign question while the tool log shows it running run_sql and exfiltrating credentials over Telegram](screenshots/prompt-injection-exfil.png)
 
 The stolen credentials landing in the attacker's Telegram chat:
 
 ![Fake Acme user credentials delivered to a Telegram bot named "Data Exfiltration"](screenshots/telegram-exfiltration.png)
-
----
-
-## Why this exists
-
-Most vulnerable-app labs (DVWA, WebGoat, Juice Shop) target classic web bugs. This
-one targets the **agent trust boundary**: what happens when an LLM can call tools,
-and those tools trust the model's arguments, tool output, and retrieved documents
-without question. It demonstrates:
-
-- **A confused-deputy agent** — the model abuses its own privileges on the
-  attacker's behalf.
-- **Indirect prompt injection** — instructions hidden inside a retrieved RAG
-  document hijack the agent, with no direct access to the prompt.
-- **Attack vs. defense in one repo** — every sink has a paired defended branch, so
-  you can flip `SAFE_MODE` and re-run the identical payload to see the mitigation.
-
-Everything runs **fully offline** with no API key (see [Running without an
-LLM](#running-without-an-llm-offline-mode)), so the whole thing is reproducible on
-a `git clone` with no accounts or network access.
 
 ---
 
@@ -130,16 +101,15 @@ TELEGRAM_CHAT_ID=            # find yours with @userinfobot
 LAB_METADATA_BASE=http://127.0.0.1:5000
 ```
 
-> **Never commit your `.env`.** It is git-ignored by default. The `send_telegram_message`
-> tool sends to the real Telegram Bot API when a token is configured; leave the
-> token blank and it fails loudly instead (you still see the outbound payload logged).
-
 ## Running
 
 ```bash
+
+pip install -r requirements.txt
+python init_db_and_kb.py
 python web_ui.py            # http://127.0.0.1:5000  (tool logs stream in this terminal)
 # or, CLI instead of the web UI:
-python agent_client.py
+
 ```
 
 With the web UI running, open `http://127.0.0.1:5000`, type your payloads into the
@@ -151,10 +121,10 @@ With the web UI running, open `http://127.0.0.1:5000`, type your payloads into t
 
 With `SAFE_MODE=0` (default), every tool is fully exploitable. Set `SAFE_MODE=1`
 and each tool loads its **defended** variant instead (SSRF IP blocking, a `data/`
-sandbox, read-only SELECT-only SQL, exfil/XSS filters) — the same payloads are now
+sandbox, read-only SELECT-only SQL, exfil/XSS filters), the same payloads are now
 blocked. Use it to compare attack and defense during a session.
 
-**Changes take effect live:** edit `.env`, save, and refresh the page — no restart.
+**Changes take effect live:** edit `.env`, save, and refresh the page, no restart.
 Flags are read from disk at use-time via `lab_config.py` and passed fresh to each
 turn's MCP subprocess. The status bar badge and the UI accent color reflect the
 current mode.
@@ -175,10 +145,3 @@ everything:
 python init_db_and_kb.py
 ```
 
----
-
-## Disclaimer
-
-This repository is for **authorized security education and research only**. Do not
-use it for anything other than learning about these vulnerabilities in your own
-isolated environment.
